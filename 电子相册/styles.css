@@ -1,0 +1,631 @@
+:root {
+  --gold: #f5d483;
+  --gold-soft: rgba(245, 212, 131, 0.62);
+  --rose: #f07ca6;
+  --rose-soft: rgba(240, 124, 166, 0.36);
+  --ink: #09040d;
+  --plum: #1b0b1e;
+  --cyan: #75e0ff;
+--card-w: clamp(70px, min(9.2vw, 13vh), 138px);
+  --card-h: calc(var(--card-w) * 1.42);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 24%, rgba(144, 68, 92, 0.2), transparent 28%),
+    radial-gradient(circle at 18% 72%, rgba(22, 74, 92, 0.22), transparent 30%),
+    linear-gradient(135deg, #08040d 0%, #1b091a 42%, #0d1019 100%);
+  color: #fff7e8;
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", Arial, sans-serif;
+}
+
+button {
+  border: 1px solid rgba(245, 212, 131, 0.2);
+  color: #f8df9c;
+  background: rgba(20, 12, 23, 0.66);
+  box-shadow: 0 0 18px rgba(240, 124, 166, 0.09);
+  cursor: pointer;
+  font: inherit;
+}
+
+button:hover {
+  border-color: rgba(245, 212, 131, 0.55);
+  background: rgba(45, 21, 35, 0.78);
+}
+
+.album-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-width: 320px;
+  perspective: 1300px;
+}
+
+#particleCanvas,
+.vignette,
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#particleCanvas {
+  z-index: 0;
+}
+
+.vignette {
+  z-index: 2;
+  background:
+    radial-gradient(circle at center, transparent 0%, transparent 42%, rgba(3, 0, 8, 0.58) 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.44), transparent 20%, transparent 80%, rgba(0, 0, 0, 0.44));
+}
+
+.grain {
+  z-index: 3;
+  opacity: 0.13;
+  background-image:
+    linear-gradient(0deg, rgba(255, 255, 255, 0.03) 50%, transparent 50%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 50%, transparent 50%);
+  background-size: 3px 3px;
+  mix-blend-mode: screen;
+}
+
+.topbar {
+  position: absolute;
+  z-index: 7;
+  top: clamp(8px, 1.8vh, 18px);
+  left: clamp(18px, 3.7vw, 54px);
+  right: clamp(18px, 3.7vw, 54px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  pointer-events: none;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brand-logo-image {
+  display: block;
+  width: clamp(210px, 24vw, 390px);
+  height: auto;
+  margin-top: -6px;
+  margin-left: -6px;
+  filter:
+    drop-shadow(0 0 22px rgba(255, 197, 220, 0.32))
+    drop-shadow(0 10px 28px rgba(255, 136, 184, 0.14));
+}
+
+.brand-subtitle,
+.status {
+  letter-spacing: 3px;
+  color: rgba(255, 239, 205, 0.68);
+  font-size: clamp(8px, 1vw, 12px);
+}
+
+.brand-subtitle {
+  margin-top: -8px;
+  margin-left: 6px;
+  letter-spacing: 4px;
+}
+
+.status {
+  position: relative;
+  text-align: right;
+  line-height: 1.8;
+}
+
+.status strong {
+  display: block;
+  color: #ff91ad;
+  font-size: clamp(12px, 1.2vw, 17px);
+  letter-spacing: 4px;
+}
+
+.stage {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.deck {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.photo-card {
+  --x: 0px;
+  --y: 0px;
+  --z: 0px;
+  --rx: 0deg;
+  --ry: 0deg;
+  --rz: 0deg;
+  --s: 1;
+  --o: 1;
+  --drag-x: 0px;
+  --drag-y: 0px;
+  --hover-s: 1;
+  --stack: 1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--card-w);
+  height: var(--card-h);
+  opacity: var(--o);
+  border: 1px solid rgba(255, 236, 203, 0.25);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 20px 42px rgba(0, 0, 0, 0.48),
+    0 0 20px rgba(240, 124, 166, 0.1);
+  transition:
+    border-color 180ms ease,
+    filter 180ms ease,
+    box-shadow 180ms ease;
+  transform:
+    translate3d(
+      calc(-50% + var(--x) + var(--drag-x)),
+      calc(-50% + var(--y) + var(--drag-y)),
+      var(--z)
+    )
+    rotateX(var(--rx))
+    rotateY(var(--ry))
+    rotateZ(var(--rz))
+    scale(var(--s))
+    scale(var(--hover-s));
+  will-change: transform, opacity;
+  cursor: pointer;
+  touch-action: none;
+  backface-visibility: hidden;
+}
+
+.photo-card:hover,
+.photo-card:focus-visible,
+.photo-card.is-aimed {
+  --hover-s: 1.08;
+  border-color: rgba(245, 212, 131, 0.72);
+  outline: none;
+  z-index: 10000;
+}
+
+.photo-card.is-aimed {
+  z-index: 11000;
+}
+
+.photo-card:hover img,
+.photo-card:focus-visible img,
+.photo-card.is-aimed img {
+  filter: saturate(1.12) contrast(1.06) brightness(1.04);
+}
+
+.photo-card.is-dragging {
+  --hover-s: 1.12;
+  z-index: 12000;
+  border-color: rgba(255, 225, 156, 0.82);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.58),
+    0 0 52px rgba(245, 212, 131, 0.24),
+    0 0 80px rgba(240, 124, 166, 0.18);
+}
+
+.album-shell[data-glow="on"] .photo-card {
+  box-shadow:
+    0 22px 45px rgba(0, 0, 0, 0.5),
+    0 0 26px rgba(245, 212, 131, 0.2),
+    0 0 54px rgba(240, 124, 166, 0.18);
+}
+
+.photo-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.24), transparent 34%),
+    linear-gradient(0deg, rgba(5, 3, 8, 0.62), transparent 44%);
+  pointer-events: none;
+}
+
+.photo-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.04) contrast(1.03);
+}
+
+.card-label {
+  position: absolute;
+  z-index: 3;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  min-height: 32px;
+  color: rgba(255, 247, 232, 0.88);
+  font-size: clamp(8px, 0.8vw, 11px);
+  line-height: 1.55;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.card-label b {
+  display: block;
+  color: white;
+  font-weight: 500;
+}
+
+.caption {
+  display: none;
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: clamp(112px, 17vh, 168px);
+  width: min(86vw, 720px);
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.caption p,
+.caption h1 {
+  margin: 0;
+  text-shadow:
+    0 0 18px rgba(245, 212, 131, 0.28),
+    0 3px 16px rgba(0, 0, 0, 0.8);
+}
+
+.caption p {
+  min-height: 36px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: clamp(20px, 2.6vw, 34px);
+}
+
+.caption h1 {
+  margin-top: 12px;
+  color: var(--gold);
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: clamp(25px, 3.45vw, 46px);
+  font-weight: 500;
+  letter-spacing: 8px;
+}
+
+.album-shell.note-active .topbar,
+.album-shell.note-active .caption,
+.album-shell.note-active .controls {
+  opacity: 0.32;
+  filter: blur(0.3px);
+}
+
+.controls {
+  position: absolute;
+  z-index: 12;
+  right: clamp(16px, 3.8vw, 48px);
+  bottom: clamp(18px, 4.2vh, 42px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.photo-input {
+  display: none;
+}
+
+.controls button {
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #f4d995;
+  font-size: 11px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.controls .icon-button {
+  width: 36px;
+  padding: 0;
+  font-size: 17px;
+  letter-spacing: 0;
+}
+
+#musicToggle.is-on {
+  border-color: rgba(245, 212, 131, 0.64);
+  color: #fff0b8;
+  background: rgba(80, 35, 58, 0.76);
+  box-shadow:
+    0 0 24px rgba(245, 212, 131, 0.16),
+    0 0 34px rgba(240, 124, 166, 0.18);
+}
+
+.note-modal {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 4vw, 44px);
+}
+
+.note-modal.is-open {
+  display: flex;
+}
+
+.note-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 49% 42%, rgba(240, 124, 166, 0.14), transparent 34%),
+    rgba(2, 0, 5, 0.76);
+  backdrop-filter: blur(6px) brightness(0.58);
+}
+
+.note-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(300px, 420px);
+  gap: clamp(28px, 4vw, 52px);
+  width: min(920px, 92vw);
+  max-height: min(640px, 86vh);
+  padding: clamp(28px, 4vw, 56px);
+  border: 1px solid rgba(240, 124, 166, 0.34);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(91, 36, 74, 0.22), transparent 34%),
+    rgba(12, 4, 18, 0.92);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.62),
+    0 0 80px rgba(240, 124, 166, 0.16),
+    inset 0 0 44px rgba(255, 255, 255, 0.025);
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+}
+
+.note-close {
+  position: absolute;
+  z-index: 99;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.note-photo-wrap {
+  display: grid;
+  min-height: 460px;
+  overflow: hidden;
+  border: 1px solid rgba(240, 124, 166, 0.35);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.38);
+  place-items: center;
+  min-width: 0;
+}
+
+.note-photo-wrap img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 100%;
+  max-height: 620px;
+  object-fit: cover;
+}
+
+.note-editor {
+  display: flex;
+  min-height: 460px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0 6px;
+  min-width: 0;
+}
+
+.note-editor p {
+  margin: 0;
+  color: var(--gold);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  letter-spacing: 6px;
+}
+
+.note-editor h2 {
+  margin: 0 0 8px;
+  color: rgba(255, 247, 232, 0.96);
+  font-family: Georgia, "Times New Roman", "Microsoft YaHei", serif;
+  font-size: clamp(34px, 4vw, 48px);
+  line-height: 1.18;
+  letter-spacing: 0;
+  text-shadow: 0 0 24px rgba(245, 212, 131, 0.16);
+  overflow-wrap: anywhere;
+}
+
+.note-body {
+  color: rgba(255, 247, 232, 0.78);
+  font-size: clamp(16px, 1.45vw, 19px);
+  line-height: 1.9;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.note-editor textarea {
+  width: 100%;
+  max-width: 100%;
+  min-height: 76px;
+  resize: none;
+  border: 1px solid rgba(245, 212, 131, 0.18);
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: #fff7e8;
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.24);
+  font: 14px/1.6 "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  outline: none;
+}
+
+.note-editor textarea:focus {
+  border-color: rgba(245, 212, 131, 0.62);
+}
+
+.note-actions {
+  display: flex;
+  justify-content: stretch;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.note-actions button {
+  height: 54px;
+  min-width: 116px;
+  flex: 1;
+  border-radius: 14px;
+  padding: 0 18px;
+  white-space: nowrap;
+  letter-spacing: 3px;
+  font-size: 11px;
+}
+
+.note-actions button:last-child {
+  min-width: 260px;
+  background: rgba(75, 43, 40, 0.72);
+}
+
+@media (max-width: 720px) {
+  :root {
+    --card-w: clamp(58px, 15vw, 86px);
+  }
+
+  .topbar {
+    display: block;
+    align-items: flex-start;
+  }
+
+  .brand {
+    max-width: calc(100% - 76px);
+  }
+
+  .status {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .brand-subtitle,
+  .status {
+    letter-spacing: 1.8px;
+  }
+
+  .brand-logo-image {
+    width: min(220px, 62vw);
+    margin-top: -2px;
+    margin-left: -2px;
+  }
+
+  .brand-subtitle {
+    margin-left: 2px;
+    margin-top: -4px;
+    letter-spacing: 2.4px;
+  }
+
+  .status div {
+    display: none;
+  }
+
+  .status strong {
+    min-width: 52px;
+  }
+
+  .caption {
+    bottom: 116px;
+  }
+
+  .caption h1 {
+    letter-spacing: 3px;
+  }
+
+  .controls {
+    left: 14px;
+    right: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .controls button {
+    height: 34px;
+    padding: 0 10px;
+  }
+
+  .note-modal {
+    padding: 10px;
+    overflow-x: hidden;
+  }
+
+  .note-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: min(330px, calc(100vw - 60px));
+    max-width: min(330px, calc(100vw - 60px));
+    max-height: 92vh;
+    padding: 18px;
+    border-radius: 24px;
+    overflow: auto hidden;
+  }
+
+  .note-photo-wrap {
+    min-height: 0;
+    height: min(45vh, 390px);
+  }
+
+  .note-editor {
+    min-height: 260px;
+    padding: 0;
+    justify-content: flex-start;
+  }
+
+  .note-editor h2 {
+    font-size: 28px;
+    line-height: 1.16;
+  }
+
+  .note-editor textarea {
+    min-height: 150px;
+  }
+
+  .note-actions button,
+  .note-actions button:last-child {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}
